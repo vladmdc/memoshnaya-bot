@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/vladmdc/memoshnaya-bot/handlers"
+	"github.com/vladmdc/memoshnaya-bot/store"
 )
 
 type RequestBody struct {
@@ -23,13 +24,6 @@ func main() {
 	c := createClient(ctx)
 	defer func() { _ = c.Close() }()
 
-	_, _, err := c.Collection("users").Add(ctx, map[string]string{
-		"msg": "Vlados",
-	})
-	if err != nil {
-		log.Fatal().Err(err).Msg("failed to insert")
-	}
-
 	token := os.Getenv("BOT_TOKEN")
 	if token == "" {
 		log.Fatal().Msg("token not set")
@@ -40,9 +34,11 @@ func main() {
 		log.Fatal().Err(err).Msg("create bot failed")
 	}
 
+	s := store.New(c)
+
 	h := handlers.New(
 		log.With().Str("component", "handler").Logger(),
-		nil,
+		s,
 		bot,
 	)
 

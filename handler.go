@@ -4,19 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
-	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"github.com/rs/zerolog"
+
+	"github.com/vladmdc/memoshnaya-bot/handlers"
+	"github.com/vladmdc/memoshnaya-bot/store"
 )
 
 var projectID = os.Getenv("GOOGLE_CLOUD_PROJECT")
 
 // client is a Firestore client, reused between function invocations.
-var client *firestore.Client
+var (
+	bot *tgbotapi.BotAPI
+	h   *handlers.Handler
+	s   *store.Store
+	l   zerolog.Logger
+)
 
 func init() {
 	// Use the application default credentials.
@@ -26,15 +33,35 @@ func init() {
 	// invocations.
 	ctx := context.Background()
 
+	l = zerolog.New(os.Stdout).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {
-		log.Fatalf("firebase.NewApp: %v", err)
+		l.Fatal().Err(err).Msg("firebase.NewApp")
 	}
 
-	client, err = app.Firestore(ctx)
+	client, err := app.Firestore(ctx)
 	if err != nil {
-		log.Fatalf("app.Firestore: %v", err)
+		l.Fatal().Err(err).Msg("app.Firestore")
 	}
+
+	token := os.Getenv("BOT_TOKEN")
+	if token == "" {
+		l.Fatal().Msg("token not set")
+	}
+
+	bot, err = tgbotapi.NewBotAPI(os.Getenv("BOT_TOKEN"))
+	if err != nil {
+		l.Fatal().Err(err).Msg("failed to init bot")
+	}
+
+	s = store.New(client)
+
+	h = handlers.New(
+		l.With().Str("component", "handler").Logger(),
+		s,
+		bot,
+	)
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
@@ -44,32 +71,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if update.Message == nil {
-		fmt.Println("msg is nil", update)
-		return
-	}
-
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("BOT_TOKEN"))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	_, _, err = client.Collection("users").Add(context.Background(), map[string]string{
-		"msg": update.Message.Text,
-	})
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-
-	if _, err := bot.Send(msg); err != nil {
-		fmt.Println(err)
-		return
-	}
+	// todo: handle error
+	h.HandleUpdate(*update)
 
 	return
 }
-

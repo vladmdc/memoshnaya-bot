@@ -1,12 +1,16 @@
 package handlers
 
 import (
+	"context"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/rs/zerolog"
+
+	"github.com/vladmdc/memoshnaya-bot/models"
 )
 
 type store interface {
-	UpsertUser(chat *tgbotapi.Chat, from *tgbotapi.User) error
+	UpsertUserToChat(context.Context, *models.Chat, *models.User) error
 }
 
 type Handler struct {
@@ -25,7 +29,7 @@ const (
 	group
 )
 
-func (h *Handler) HandleUpdate(u tgbotapi.Update){
+func (h *Handler) HandleUpdate(u tgbotapi.Update) {
 	switch checkType(u) {
 	case private:
 		h.private(u)

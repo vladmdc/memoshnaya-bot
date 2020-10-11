@@ -1,12 +1,15 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+
+	"github.com/vladmdc/memoshnaya-bot/models"
 )
 
-func (h *Handler) group(u tgbotapi.Update){
+func (h *Handler) group(u tgbotapi.Update) {
 	switch {
 	case u.Message != nil:
 		h.log.Debug().
@@ -22,7 +25,12 @@ func (h *Handler) group(u tgbotapi.Update){
 func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 	go h.sendDeletion(m)
 
-	if err := h.st.UpsertUser(m.Chat, m.From); err != nil {
+	err := h.st.UpsertUserToChat(
+		context.Background(),
+		models.NewChat(m.Chat),
+		models.NewUser(m.From),
+	)
+	if err != nil {
 		return fmt.Errorf("upserting user: %w", err)
 	}
 

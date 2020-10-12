@@ -8,7 +8,7 @@ import (
 	"os"
 
 	firebase "firebase.google.com/go/v4"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 
 	"github.com/vladmdc/memoshnaya-bot/handlers"

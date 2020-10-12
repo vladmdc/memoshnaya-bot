@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"cloud.google.com/go/firestore"
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -47,9 +47,7 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates, err := bot.GetUpdatesChan(u)
-
-	for update := range updates {
+	for update := range bot.GetUpdatesChan(u) {
 		h.HandleUpdate(update)
 	}
 }

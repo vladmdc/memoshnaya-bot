@@ -1,6 +1,10 @@
 package models
 
-import tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+import (
+	"time"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
 
 type Chat struct {
 	ID         int64  `firestore:"id"`
@@ -40,4 +44,35 @@ func NewUser(u *tgbotapi.User) *User {
 		UserName:  u.UserName,
 		IsBot:     u.IsBot,
 	}
+}
+
+type Post struct {
+	FileID    string    `firestore:"file_id,omitempty"`
+	MessageID int       `firestore:"message_id,omitempty"`
+	ChatID    int64     `firestore:"chat_id,omitempty"`
+	UserID    int       `firestore:"user_id,omitempty"`
+	Positives []int `firestore:"positives,omitempty"`
+	Negatives []int `firestore:"negatives,omitempty"`
+	Created   time.Time `firestore:"created,omitempty"`
+}
+
+func NewPost(p *Post) *Post {
+	return &Post{
+		FileID:    p.FileID,
+		MessageID: p.MessageID,
+		ChatID:    p.ChatID,
+		UserID:    p.UserID,
+		Created:   time.Now(),
+	}
+}
+
+const (
+	Positive = 1
+	Negative = 2
+)
+
+type Reaction struct {
+	MessageID int       `firestore:"message_id,omitempty"`
+	UserID    int       `firestore:"user_id,omitempty"`
+	Type      int       `firestore:"type,omitempty"`
 }

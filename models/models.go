@@ -76,3 +76,9 @@ type Reaction struct {
 	UserID    int       `firestore:"user_id,omitempty"`
 	Type      int       `firestore:"type,omitempty"`
 }
+
+
+type PostUser struct {
+	Post
+	User
+}

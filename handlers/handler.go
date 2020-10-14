@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 
@@ -14,6 +13,7 @@ type store interface {
 	AddPost(context.Context, *models.Post) error
 	UpsertUser(context.Context, *models.Chat, *models.User) error
 	UpsertReaction(context.Context, int64, *models.Reaction) (int, int, error)
+	GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error)
 }
 
 type Handler struct {
@@ -46,6 +46,19 @@ func (h *Handler) sendDeletion(m *tgbotapi.Message) {
 	resp, err := h.bot.Request(deleteMsg)
 	if err != nil || !resp.Ok {
 		h.log.Error().Err(err).Str("desc", resp.Description).Msg("sending deletion msg")
+	}
+}
+
+func (h *Handler) YesterdayMemes() {
+	posts, err := h.st.GetYesterdayPosts(context.Background())
+	if err != nil {
+		h.log.Error().Err(err).Msg("failed to get posts")
+	}
+
+	for _, pu := range posts {
+		if err := h.sendBestMeme(&pu.Post, &pu.User); err != nil {
+			h.log.Error().Err(err).Msg("failed to send best post")
+		}
 	}
 }
 

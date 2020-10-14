@@ -32,15 +32,6 @@ func (h *Handler) groupCallback(q *tgbotapi.CallbackQuery) error {
 
 	ctx := context.Background()
 
-	err = h.st.UpsertUser(
-		ctx,
-		models.NewChat(q.Message.Chat),
-		models.NewUser(q.From),
-	)
-	if err != nil {
-		return fmt.Errorf("upserting user: %w", err)
-	}
-
 	t := models.Positive
 	if q.Data == negativeReactionData {
 		t = models.Negative

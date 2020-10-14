@@ -76,3 +76,9 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
+
+func YesterdayMeme(w http.ResponseWriter, r *http.Request) {
+	h.YesterdayMemes()
+
+	return
+}

@@ -1,10 +1,11 @@
 package store
 
 import (
+	"cloud.google.com/go/firestore"
 	"context"
 	"fmt"
-
-	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
+	"time"
 
 	"github.com/vladmdc/memoshnaya-bot/models"
 )
@@ -137,4 +138,66 @@ func (s *Store) UpsertReaction(ctx context.Context, chatID int64, r *models.Reac
 	}
 
 	return pos, neg, nil
+}
+
+func (s *Store) GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error) {
+	location, _ := time.LoadLocation("Europe/Moscow")
+	y, m, d := time.Now().In(location).Date()
+	today := time.Date(y, m, d, 0, 0, 0, 0, location)
+	yesterday := today.Add(-24*time.Hour)
+
+	it := s.c.CollectionGroup(postsColl).
+		Where("created", ">=", yesterday).
+		Where("created", "<", today).
+		Documents(ctx)
+	var posts []models.Post
+	for {
+		doc, err := it.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("iterating: %w", err)
+		}
+
+		var p models.Post
+		if err := doc.DataTo(&p); err != nil {
+			return nil, fmt.Errorf("parsing post: %w", err)
+		}
+
+		posts = append(posts, p)
+	}
+
+	bestPosts := make(map[int64]models.Post)
+	for _, post := range posts {
+		p, ok := bestPosts[post.ChatID]
+		if ok && len(post.Positives) - len(post.Negatives) <= len(p.Positives) - len(p.Negatives) {
+			continue
+		}
+
+		bestPosts[post.ChatID] = post
+	}
+
+	postUsers := make([]models.PostUser, 0, len(bestPosts))
+	for _, p := range bestPosts {
+		pu := models.PostUser{
+			Post: p,
+		}
+		dr, err := s.c.Collection(chatsColl).
+			Doc(fmt.Sprint(p.ChatID)).
+			Collection(usersColl).
+			Doc(fmt.Sprint(p.UserID)).
+			Get(ctx)
+		if err != nil {
+			continue
+		}
+
+		if err := dr.DataTo(&pu.User); err != nil {
+			continue
+		}
+
+		postUsers = append(postUsers, pu)
+	}
+
+	return postUsers, nil
 }

@@ -144,7 +144,7 @@ func (s *Store) GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error
 	location, _ := time.LoadLocation("Europe/Moscow")
 	y, m, d := time.Now().In(location).Date()
 	today := time.Date(y, m, d, 0, 0, 0, 0, location)
-	yesterday := today.Add(-24*time.Hour)
+	yesterday := today.Add(-24 * time.Hour)
 
 	it := s.c.CollectionGroup(postsColl).
 		Where("created", ">=", yesterday).
@@ -171,7 +171,7 @@ func (s *Store) GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error
 	bestPosts := make(map[int64]models.Post)
 	for _, post := range posts {
 		p, ok := bestPosts[post.ChatID]
-		if ok && len(post.Positives) - len(post.Negatives) <= len(p.Positives) - len(p.Negatives) {
+		if ok && len(post.Positives)-len(post.Negatives) <= len(p.Positives)-len(p.Negatives) {
 			continue
 		}
 

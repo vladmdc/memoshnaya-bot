@@ -33,7 +33,8 @@ func init() {
 	// invocations.
 	ctx := context.Background()
 
-	l = zerolog.New(os.Stdout).Level(zerolog.DebugLevel).With().Timestamp().Logger()
+	var hook SeverityHook
+	l = zerolog.New(os.Stdout).Level(zerolog.DebugLevel).Hook(hook).With().Timestamp().Logger()
 
 	app, err := firebase.NewApp(ctx, conf)
 	if err != nil {

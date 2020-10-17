@@ -51,8 +51,8 @@ type Post struct {
 	MessageID int       `firestore:"message_id,omitempty"`
 	ChatID    int64     `firestore:"chat_id,omitempty"`
 	UserID    int       `firestore:"user_id,omitempty"`
-	Positives []int `firestore:"positives,omitempty"`
-	Negatives []int `firestore:"negatives,omitempty"`
+	Positives []int     `firestore:"positives,omitempty"`
+	Negatives []int     `firestore:"negatives,omitempty"`
 	Created   time.Time `firestore:"created,omitempty"`
 }
 
@@ -72,11 +72,10 @@ const (
 )
 
 type Reaction struct {
-	MessageID int       `firestore:"message_id,omitempty"`
-	UserID    int       `firestore:"user_id,omitempty"`
-	Type      int       `firestore:"type,omitempty"`
+	MessageID int `firestore:"message_id,omitempty"`
+	UserID    int `firestore:"user_id,omitempty"`
+	Type      int `firestore:"type,omitempty"`
 }
-
 
 type PostUser struct {
 	Post

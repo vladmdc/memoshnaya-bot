@@ -97,9 +97,12 @@ type Chat struct {
 	FirstName           string     `json:"first_name"`                     // optional
 	LastName            string     `json:"last_name"`                      // optional
 	AllMembersAreAdmins bool       `json:"all_members_are_administrators"` // optional
-	Photo               *ChatPhoto `json:"photo"`
-	Description         string     `json:"description,omitempty"` // optional
-	InviteLink          string     `json:"invite_link,omitempty"` // optional
+	Photo               *ChatPhoto `json:"photo"`                          // optional
+	Description         string     `json:"description,omitempty"`          // optional
+	InviteLink          string     `json:"invite_link,omitempty"`          // optional
+	PinnedMessage       *Message   `json:"pinned_message"`                 // optional
+	StickerSetName      string     `json:"sticker_set_name"`               // optional
+	CanSetStickerSet    bool       `json:"can_set_sticker_set"`            // optional
 }
 
 // IsPrivate returns if the Chat is a private conversation.
@@ -137,16 +140,20 @@ type Message struct {
 	ForwardFrom           *User              `json:"forward_from"`            // optional
 	ForwardFromChat       *Chat              `json:"forward_from_chat"`       // optional
 	ForwardFromMessageID  int                `json:"forward_from_message_id"` // optional
+	ForwardSignature      string             `json:"forward_signature"`       // optional
 	ForwardDate           int                `json:"forward_date"`            // optional
 	ReplyToMessage        *Message           `json:"reply_to_message"`        // optional
 	EditDate              int                `json:"edit_date"`               // optional
+	MediaGroupID          string             `json:"media_group_id"`          // optional
+	AuthorSignature       string             `json:"author_signature"`        // optional
 	Text                  string             `json:"text"`                    // optional
-	Entities              *[]MessageEntity   `json:"entities"`                // optional
+	Entities              []MessageEntity    `json:"entities"`                // optional
+	CaptionEntities       []MessageEntity    `json:"caption_entities"`        // optional
 	Audio                 *Audio             `json:"audio"`                   // optional
 	Document              *Document          `json:"document"`                // optional
 	Animation             *ChatAnimation     `json:"animation"`               // optional
 	Game                  *Game              `json:"game"`                    // optional
-	Photo                 *[]PhotoSize       `json:"photo"`                   // optional
+	Photo                 []PhotoSize        `json:"photo"`                   // optional
 	Sticker               *Sticker           `json:"sticker"`                 // optional
 	Video                 *Video             `json:"video"`                   // optional
 	VideoNote             *VideoNote         `json:"video_note"`              // optional
@@ -155,10 +162,10 @@ type Message struct {
 	Contact               *Contact           `json:"contact"`                 // optional
 	Location              *Location          `json:"location"`                // optional
 	Venue                 *Venue             `json:"venue"`                   // optional
-	NewChatMembers        *[]User            `json:"new_chat_members"`        // optional
+	NewChatMembers        []User             `json:"new_chat_members"`        // optional
 	LeftChatMember        *User              `json:"left_chat_member"`        // optional
 	NewChatTitle          string             `json:"new_chat_title"`          // optional
-	NewChatPhoto          *[]PhotoSize       `json:"new_chat_photo"`          // optional
+	NewChatPhoto          []PhotoSize        `json:"new_chat_photo"`          // optional
 	DeleteChatPhoto       bool               `json:"delete_chat_photo"`       // optional
 	GroupChatCreated      bool               `json:"group_chat_created"`      // optional
 	SuperGroupChatCreated bool               `json:"supergroup_chat_created"` // optional
@@ -168,6 +175,7 @@ type Message struct {
 	PinnedMessage         *Message           `json:"pinned_message"`          // optional
 	Invoice               *Invoice           `json:"invoice"`                 // optional
 	SuccessfulPayment     *SuccessfulPayment `json:"successful_payment"`      // optional
+	ConnectedWebsite      string             `json:"connected_website"`       // optional
 	PassportData          *PassportData      `json:"passport_data,omitempty"` // optional
 }
 
@@ -178,11 +186,11 @@ func (m *Message) Time() time.Time {
 
 // IsCommand returns true if message starts with a "bot_command" entity.
 func (m *Message) IsCommand() bool {
-	if m.Entities == nil || len(*m.Entities) == 0 {
+	if m.Entities == nil || len(m.Entities) == 0 {
 		return false
 	}
 
-	entity := (*m.Entities)[0]
+	entity := m.Entities[0]
 	return entity.Offset == 0 && entity.Type == "bot_command"
 }
 
@@ -212,7 +220,7 @@ func (m *Message) CommandWithAt() string {
 	}
 
 	// IsCommand() checks that the message begins with a bot_command entity
-	entity := (*m.Entities)[0]
+	entity := m.Entities[0]
 	return m.Text[1:entity.Length]
 }
 
@@ -231,7 +239,8 @@ func (m *Message) CommandArguments() string {
 	}
 
 	// IsCommand() checks that the message begins with a bot_command entity
-	entity := (*m.Entities)[0]
+	entity := m.Entities[0]
+
 	if len(m.Text) == entity.Length {
 		return "" // The command makes up the whole message
 	}
@@ -286,6 +295,22 @@ type Document struct {
 
 // Sticker contains information about a sticker.
 type Sticker struct {
+	FileID       string       `json:"file_id"`
+	Width        int          `json:"width"`
+	Height       int          `json:"height"`
+	Thumbnail    *PhotoSize   `json:"thumb"`         // optional
+	Emoji        string       `json:"emoji"`         // optional
+	SetName      string       `json:"set_name"`      // optional
+	MaskPosition MaskPosition `json:"mask_position"` //optional
+	FileSize     int          `json:"file_size"`     // optional
+}
+
+// MaskPosition is the position of a mask.
+type MaskPosition struct {
+	Point     string     `json:"point"`
+	XShift    float32    `json:"x_shift"`
+	YShift    float32    `json:"y_shift"`
+	Scale     float32    `json:"scale"`
 	FileID    string     `json:"file_id"`
 	Width     int        `json:"width"`
 	Height    int        `json:"height"`
@@ -343,6 +368,7 @@ type Contact struct {
 	FirstName   string `json:"first_name"`
 	LastName    string `json:"last_name"` // optional
 	UserID      int    `json:"user_id"`   // optional
+	VCard       string `json:"vcard"`     // optional
 }
 
 // Location contains information about a place.
@@ -525,27 +551,6 @@ func (info WebhookInfo) IsSet() bool {
 	return info.URL != ""
 }
 
-// InputMediaPhoto contains a photo for displaying as part of a media group.
-type InputMediaPhoto struct {
-	Type      string `json:"type"`
-	Media     string `json:"media"`
-	Caption   string `json:"caption"`
-	ParseMode string `json:"parse_mode"`
-}
-
-// InputMediaVideo contains a video for displaying as part of a media group.
-type InputMediaVideo struct {
-	Type  string `json:"type"`
-	Media string `json:"media"`
-	// thumb intentionally missing as it is not currently compatible
-	Caption           string `json:"caption"`
-	ParseMode         string `json:"parse_mode"`
-	Width             int    `json:"width"`
-	Height            int    `json:"height"`
-	Duration          int    `json:"duration"`
-	SupportsStreaming bool   `json:"supports_streaming"`
-}
-
 // InlineQuery is a Query from Telegram for an inline request.
 type InlineQuery struct {
 	ID       string    `json:"id"`
@@ -676,11 +681,27 @@ type InlineQueryResultDocument struct {
 
 // InlineQueryResultLocation is an inline query response location.
 type InlineQueryResultLocation struct {
-	Type                string                `json:"type"`      // required
-	ID                  string                `json:"id"`        // required
-	Latitude            float64               `json:"latitude"`  // required
-	Longitude           float64               `json:"longitude"` // required
-	Title               string                `json:"title"`     // required
+	Type                string                `json:"type"`        // required
+	ID                  string                `json:"id"`          // required
+	Latitude            float64               `json:"latitude"`    // required
+	Longitude           float64               `json:"longitude"`   // required
+	LivePeriod          int                   `json:"live_period"` // optional
+	Title               string                `json:"title"`       // required
+	ReplyMarkup         *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
+	InputMessageContent interface{}           `json:"input_message_content,omitempty"`
+	ThumbURL            string                `json:"thumb_url"`
+	ThumbWidth          int                   `json:"thumb_width"`
+	ThumbHeight         int                   `json:"thumb_height"`
+}
+
+// InlineQueryResultContact is an inline query response contact.
+type InlineQueryResultContact struct {
+	Type                string                `json:"type"`         // required
+	ID                  string                `json:"id"`           // required
+	PhoneNumber         string                `json:"phone_number"` // required
+	FirstName           string                `json:"first_name"`   // required
+	LastName            string                `json:"last_name"`
+	VCard               string                `json:"vcard"`
 	ReplyMarkup         *InlineKeyboardMarkup `json:"reply_markup,omitempty"`
 	InputMessageContent interface{}           `json:"input_message_content,omitempty"`
 	ThumbURL            string                `json:"thumb_url"`
@@ -736,6 +757,7 @@ type InputContactMessageContent struct {
 	PhoneNumber string `json:"phone_number"`
 	FirstName   string `json:"first_name"`
 	LastName    string `json:"last_name"`
+	VCard       string `json:"vcard"`
 }
 
 // Invoice contains basic information about an invoice.
@@ -773,9 +795,9 @@ type OrderInfo struct {
 
 // ShippingOption represents one shipping option.
 type ShippingOption struct {
-	ID     string          `json:"id"`
-	Title  string          `json:"title"`
-	Prices *[]LabeledPrice `json:"prices"`
+	ID     string         `json:"id"`
+	Title  string         `json:"title"`
+	Prices []LabeledPrice `json:"prices"`
 }
 
 // SuccessfulPayment contains basic information about a successful payment.
@@ -808,12 +830,64 @@ type PreCheckoutQuery struct {
 	OrderInfo        *OrderInfo `json:"order_info,omitempty"`
 }
 
+// StickerSet is a collection of stickers.
+type StickerSet struct {
+	Name          string    `json:"name"`
+	Title         string    `json:"title"`
+	ContainsMasks bool      `json:"contains_masks"`
+	Stickers      []Sticker `json:"stickers"`
+}
+
+// BaseInputMedia is a base type for the InputMedia types.
+type BaseInputMedia struct {
+	Type      string `json:"type"`
+	Media     string `json:"media"`
+	Caption   string `json:"caption"`
+	ParseMode string `json:"parse_mode"`
+}
+
+// InputMediaPhoto is a photo to send as part of a media group.
+type InputMediaPhoto struct {
+	BaseInputMedia
+}
+
+// InputMediaVideo is a video to send as part of a media group.
+type InputMediaVideo struct {
+	BaseInputMedia
+	Width             int  `json:"width"`
+	Height            int  `json:"height"`
+	Duration          int  `json:"duration"`
+	SupportsStreaming bool `json:"supports_streaming"`
+}
+
+// InputMediaAnimation is an animation to send as part of a media group.
+type InputMediaAnimation struct {
+	BaseInputMedia
+	Width    int `json:"width"`
+	Height   int `json:"height"`
+	Duration int `json:"duration"`
+}
+
+// InputMediaAudio is a audio to send as part of a media group.
+type InputMediaAudio struct {
+	BaseInputMedia
+	Duration  int    `json:"duration"`
+	Performer string `json:"performer"`
+	Title     string `json:"title"`
+}
+
+// InputMediaDocument is a audio to send as part of a media group.
+type InputMediaDocument struct {
+	BaseInputMedia
+}
+
 // Error is an error containing extra information returned by the Telegram API.
 type Error struct {
 	Message string
 	ResponseParameters
 }
 
+// Error message string.
 func (e Error) Error() string {
 	return e.Message
 }

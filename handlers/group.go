@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
@@ -48,6 +49,8 @@ func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 		return h.groupVideo(m)
 	case m.Animation != nil:
 		return h.groupAnimation(m)
+	case m.Entities != nil:
+		return h.groupEntity(m)
 	default:
 		return nil
 	}
@@ -112,6 +115,68 @@ func (h *Handler) newUserMediaPost(msg tgbotapi.Chattable, m *tgbotapi.Message, 
 		models.NewPost(&models.Post{
 			FileID:    fileID,
 			MessageID: sent.MessageID,
+			ChatID:    m.Chat.ID,
+			UserID:    m.From.ID,
+		}),
+	)
+	if err != nil {
+		return fmt.Errorf("saving post: %w", err)
+	}
+
+	h.log.Info().Msg("new post sent")
+
+	return nil
+}
+
+func (h *Handler) groupEntity(m *tgbotapi.Message) error {
+	if m.Entities == nil {
+		return nil
+	}
+
+	e := m.Entities[0]
+	if e.Type != "url" {
+		h.log.Warn().Str("text", m.Text).Str("entity-type", e.Type).Msg("undefined entity")
+		return nil
+	}
+
+	eURL := string([]rune(m.Text)[e.Offset : e.Offset+e.Length])
+	urlName := "Ссылочка"
+	switch {
+	case strings.Contains(eURL, "youtube") || strings.Contains(eURL, "youtu.be"):
+		urlName = "Видос"
+	case strings.Contains(eURL, "coub"):
+		urlName = "coub"
+	case strings.Contains(eURL, "twitter.com"):
+		urlName = "Твит"
+	}
+
+	linkText := fmt.Sprintf(
+		"[%s](%s) _от_ %s",
+		urlName,
+		eURL,
+		from(m.From),
+	)
+	caption := string([]rune(m.Text)[:e.Offset])
+	if e.Offset == 0 {
+		caption = string([]rune(m.Text)[e.Offset+e.Length:])
+	}
+	if caption != "" {
+		linkText = fmt.Sprintf("%s\n%s", caption, linkText)
+	}
+
+	msg := tgbotapi.NewMessage(m.Chat.ID, linkText)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.DisableNotification = true
+	msg.ReplyMarkup = newReactionsKeyboard(0, 0)
+	if m.ReplyToMessage != nil {
+		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
+	}
+	sentMsg, _ := h.bot.Send(msg)
+
+	err := h.st.AddPost(
+		context.Background(),
+		models.NewPost(&models.Post{
+			MessageID: sentMsg.MessageID,
 			ChatID:    m.Chat.ID,
 			UserID:    m.From.ID,
 		}),

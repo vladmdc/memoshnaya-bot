@@ -11,7 +11,7 @@ jobs:
           go-version: '1.13'
       - run: go build -mod=vendor
 
-  deploy:
+  deploy-bot:
     runs-on: ubuntu-latest
     needs: build
     steps:

@@ -22,7 +22,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_SA_KEY }}
           export_default_credentials: true
       - run:
-          gcloud functions deploy function-1 --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=Handle --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+          gcloud functions deploy bot --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=Handle --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN }}
 
   deploy-best-post:
     runs-on: ubuntu-latest

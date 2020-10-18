@@ -42,8 +42,6 @@ func main() {
 		bot,
 	)
 
-	h.YesterdayMemes()
-
 	log.Info().Str("bot", bot.Self.UserName).Msg("authorized on account")
 
 	u := tgbotapi.NewUpdate(0)

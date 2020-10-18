@@ -120,5 +120,7 @@ func (h *Handler) newUserMediaPost(msg tgbotapi.Chattable, m *tgbotapi.Message, 
 		return fmt.Errorf("saving post: %w", err)
 	}
 
+	h.log.Info().Msg("new post sent")
+
 	return nil
 }

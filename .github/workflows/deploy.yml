@@ -1,0 +1,38 @@
+name: deploy
+on:
+  workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.13'
+      - run: go build -mod=vendor
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+      - run:
+          gcloud functions deploy function-1 --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=Handle --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN }}
+
+  deploy-best-post:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+      - run:
+          gcloud functions deploy best-post --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=YesterdayMeme --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN }}

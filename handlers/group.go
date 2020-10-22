@@ -35,6 +35,7 @@ func (h *Handler) group(u tgbotapi.Update) {
 func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 	go h.sendDeletion(m)
 
+	h.log.Debug().Msg("upserting user")
 	err := h.st.UpsertUserToChat(
 		context.Background(),
 		models.NewChat(m.Chat),
@@ -43,6 +44,12 @@ func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 	if err != nil {
 		return fmt.Errorf("upserting user: %w", err)
 	}
+
+	h.log.Debug().
+		Str("username", m.From.UserName).
+		Int("message-id", m.MessageID).
+		Int64("chat-id", m.Chat.ID).
+		Msg("group message")
 
 	switch {
 	case m.Photo != nil:
@@ -71,7 +78,11 @@ func (h *Handler) groupPhoto(m *tgbotapi.Message) error {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
 
-	h.log.Debug().Msg("new animation formed")
+	h.log.Debug().
+		Str("username", m.From.UserName).
+		Int("message-id", m.MessageID).
+		Int64("chat-id", m.Chat.ID).
+		Msg("group photo")
 
 	return h.newUserMediaPost(msg, m, fileId)
 }
@@ -89,7 +100,11 @@ func (h *Handler) groupVideo(m *tgbotapi.Message) error {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
 
-	h.log.Debug().Msg("new animation formed")
+	h.log.Debug().
+		Str("username", m.From.UserName).
+		Int("message-id", m.MessageID).
+		Int64("chat-id", m.Chat.ID).
+		Msg("group video")
 
 	return h.newUserMediaPost(msg, m, fileId)
 }
@@ -107,7 +122,11 @@ func (h *Handler) groupAnimation(m *tgbotapi.Message) error {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
 
-	h.log.Debug().Msg("new animation formed")
+	h.log.Debug().
+		Str("username", m.From.UserName).
+		Int("message-id", m.MessageID).
+		Int64("chat-id", m.Chat.ID).
+		Msg("group animation")
 
 	return h.newUserMediaPost(msg, m, fileId)
 }

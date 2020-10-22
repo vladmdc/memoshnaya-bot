@@ -45,7 +45,13 @@ func (h *Handler) sendDeletion(m *tgbotapi.Message) {
 	deleteMsg := tgbotapi.NewDeleteMessage(m.Chat.ID, m.MessageID)
 	resp, err := h.bot.Request(deleteMsg)
 	if err != nil || !resp.Ok {
-		h.log.Error().Err(err).Str("desc", resp.Description).Msg("sending deletion msg")
+		h.log.Error().Err(err).
+			Int64("chat-id", m.Chat.ID).
+			Int("msg-id", m.MessageID).
+			Str("desc", resp.Description).
+			Int("err-code", resp.ErrorCode).
+			RawJSON("raw-resp", resp.Result).
+			Msg("sending deletion msg")
 	}
 }
 

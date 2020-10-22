@@ -16,6 +16,8 @@ func (h *Handler) group(u tgbotapi.Update) {
 		h.log.Debug().
 			Str("type", "group").
 			Str("username", u.Message.From.UserName).
+			Int("message-id", u.Message.MessageID).
+			Int64("chat-id", u.Message.Chat.ID).
 			Msg("new message")
 		if err := h.groupMsg(u.Message); err != nil {
 			h.log.Error().Err(err).Str("type", "group").Msg("failed to handle msg")
@@ -69,6 +71,8 @@ func (h *Handler) groupPhoto(m *tgbotapi.Message) error {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
 
+	h.log.Debug().Msg("new animation formed")
+
 	return h.newUserMediaPost(msg, m, fileId)
 }
 
@@ -84,6 +88,8 @@ func (h *Handler) groupVideo(m *tgbotapi.Message) error {
 	if m.ReplyToMessage != nil {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
+
+	h.log.Debug().Msg("new animation formed")
 
 	return h.newUserMediaPost(msg, m, fileId)
 }
@@ -101,10 +107,13 @@ func (h *Handler) groupAnimation(m *tgbotapi.Message) error {
 		msg.ReplyToMessageID = m.ReplyToMessage.MessageID
 	}
 
+	h.log.Debug().Msg("new animation formed")
+
 	return h.newUserMediaPost(msg, m, fileId)
 }
 
 func (h *Handler) newUserMediaPost(msg tgbotapi.Chattable, m *tgbotapi.Message, fileID string) error {
+	h.log.Debug().Msg("sending new post")
 	sent, err := h.bot.Send(msg)
 	if err != nil {
 		return fmt.Errorf("sending new post: %w", err)
@@ -122,8 +131,6 @@ func (h *Handler) newUserMediaPost(msg tgbotapi.Chattable, m *tgbotapi.Message, 
 	if err != nil {
 		return fmt.Errorf("saving post: %w", err)
 	}
-
-	h.log.Info().Msg("new post sent")
 
 	return nil
 }

@@ -68,7 +68,7 @@ func init() {
 func Handle(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered in f", r)
+			l.Error().Interface("recover", r).Msg("recovered fatal")
 		}
 	}()
 

@@ -66,6 +66,12 @@ func init() {
 }
 
 func Handle(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered in f", r)
+		}
+	}()
+
 	update := &tgbotapi.Update{}
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		fmt.Fprint(w, "Hello World!")

@@ -7,4 +7,5 @@ require (
 	firebase.google.com/go/v4 v4.0.0
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.0.0-rc1
 	github.com/rs/zerolog v1.20.0
+	google.golang.org/api v0.29.0
 )

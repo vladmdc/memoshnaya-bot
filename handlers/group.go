@@ -32,11 +32,13 @@ func (h *Handler) group(u tgbotapi.Update) {
 	}
 }
 
+type usrRate struct{}
+
 func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 	go h.sendDeletion(m)
 
 	h.log.Debug().Msg("upserting user")
-	err := h.st.UpsertUserToChat(
+	rate, err := h.st.UpsertUserToChat(
 		context.Background(),
 		models.NewChat(m.Chat),
 		models.NewUser(m.From),
@@ -44,6 +46,8 @@ func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 	if err != nil {
 		return fmt.Errorf("upserting user: %w", err)
 	}
+
+	ctx := context.WithValue(context.Background(), usrRate{}, rate)
 
 	h.log.Debug().
 		Str("username", m.From.UserName).
@@ -53,24 +57,24 @@ func (h *Handler) groupMsg(m *tgbotapi.Message) error {
 
 	switch {
 	case m.Photo != nil:
-		return h.groupPhoto(m)
+		return h.groupPhoto(ctx, m)
 	case m.Video != nil:
-		return h.groupVideo(m)
+		return h.groupVideo(ctx, m)
 	case m.Animation != nil:
-		return h.groupAnimation(m)
+		return h.groupAnimation(ctx, m)
 	case m.Entities != nil:
-		return h.groupEntity(m)
+		return h.groupEntity(ctx, m)
 	default:
 		return nil
 	}
 }
 
-func (h *Handler) groupPhoto(m *tgbotapi.Message) error {
+func (h *Handler) groupPhoto(ctx context.Context, m *tgbotapi.Message) error {
 	fileId := m.Photo[0].FileID
 	msg := tgbotapi.NewPhotoShare(m.Chat.ID, fileId)
 	msg.ReplyMarkup = newReactionsKeyboard(0, 0)
 	msg.DisableNotification = true
-	msg.Caption = "from: " + from(m.From)
+	msg.Caption = "from: " + from(ctx, m.From)
 	if m.Caption != "" {
 		msg.Caption = m.Caption + "\n" + msg.Caption
 	}
@@ -87,12 +91,12 @@ func (h *Handler) groupPhoto(m *tgbotapi.Message) error {
 	return h.newUserMediaPost(msg, m, fileId)
 }
 
-func (h *Handler) groupVideo(m *tgbotapi.Message) error {
+func (h *Handler) groupVideo(ctx context.Context, m *tgbotapi.Message) error {
 	fileId := m.Video.FileID
 	msg := tgbotapi.NewVideoShare(m.Chat.ID, fileId)
 	msg.ReplyMarkup = newReactionsKeyboard(0, 0)
 	msg.DisableNotification = true
-	msg.Caption = "from: " + from(m.From)
+	msg.Caption = "from: " + from(ctx, m.From)
 	if m.Caption != "" {
 		msg.Caption = fmt.Sprintf("%s\n%s", m.Caption, msg.Caption)
 	}
@@ -109,12 +113,12 @@ func (h *Handler) groupVideo(m *tgbotapi.Message) error {
 	return h.newUserMediaPost(msg, m, fileId)
 }
 
-func (h *Handler) groupAnimation(m *tgbotapi.Message) error {
+func (h *Handler) groupAnimation(ctx context.Context, m *tgbotapi.Message) error {
 	fileId := m.Animation.FileID
 	msg := tgbotapi.NewAnimationShare(m.Chat.ID, fileId)
 	msg.ReplyMarkup = newReactionsKeyboard(0, 0)
 	msg.DisableNotification = true
-	msg.Caption = "from: " + from(m.From)
+	msg.Caption = "from: " + from(ctx, m.From)
 	if m.Caption != "" {
 		msg.Caption = fmt.Sprintf("%s\n%s", m.Caption, msg.Caption)
 	}
@@ -154,7 +158,7 @@ func (h *Handler) newUserMediaPost(msg tgbotapi.Chattable, m *tgbotapi.Message, 
 	return nil
 }
 
-func (h *Handler) groupEntity(m *tgbotapi.Message) error {
+func (h *Handler) groupEntity(ctx context.Context, m *tgbotapi.Message) error {
 	if m.Entities == nil {
 		return nil
 	}
@@ -180,7 +184,7 @@ func (h *Handler) groupEntity(m *tgbotapi.Message) error {
 		"[%s](%s) _от_ %s",
 		urlName,
 		eURL,
-		from(m.From),
+		from(ctx, m.From),
 	)
 	caption := string([]rune(m.Text)[:e.Offset])
 	if e.Offset == 0 {

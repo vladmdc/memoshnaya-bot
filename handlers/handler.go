@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/rs/zerolog"
 
@@ -9,11 +10,12 @@ import (
 )
 
 type store interface {
-	UpsertUserToChat(context.Context, *models.Chat, *models.User) error
+	UpsertUserToChat(context.Context, *models.Chat, *models.User) (*models.UserRate, error)
 	AddPost(context.Context, *models.Post) error
 	UpsertUser(context.Context, *models.Chat, *models.User) error
 	UpsertReaction(context.Context, int64, *models.Reaction) (int, int, error)
 	GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error)
+	GetLastRate(ctx context.Context, chatID int64) (*models.Rate, error)
 }
 
 type Handler struct {

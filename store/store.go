@@ -1,20 +1,21 @@
 package store
 
 import (
-	"cloud.google.com/go/firestore"
 	"context"
 	"fmt"
-	"google.golang.org/api/iterator"
 	"time"
+
+	"cloud.google.com/go/firestore"
+	"google.golang.org/api/iterator"
 
 	"github.com/vladmdc/memoshnaya-bot/models"
 )
 
 const (
-	chatsColl     = "chats"
-	usersColl     = "users"
-	postsColl     = "posts"
-	reactionsColl = "reactions"
+	collChats = "chats"
+	collUsers = "users"
+	collPosts = "posts"
+	collRates = "rates"
 )
 
 type Store struct {
@@ -25,29 +26,51 @@ func New(c *firestore.Client) *Store {
 	return &Store{c: c}
 }
 
-func (s *Store) UpsertUserToChat(ctx context.Context, chat *models.Chat, from *models.User) error {
-	c := s.c.Collection(chatsColl).Doc(fmt.Sprint(chat.ID))
+func (s *Store) UpsertUserToChat(ctx context.Context, chat *models.Chat, from *models.User) (*models.UserRate, error) {
+	c := s.c.Collection(collChats).Doc(fmt.Sprint(chat.ID))
+	var r *models.UserRate
 	err := s.c.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		if err := tx.Set(c, chat); err != nil {
 			return fmt.Errorf("updating chat: %w", err)
 		}
 
-		u := c.Collection(usersColl).Doc(fmt.Sprint(from.ID))
+		u := c.Collection(collUsers).Doc(fmt.Sprint(from.ID))
 		if err := tx.Set(u, from); err != nil {
 			return fmt.Errorf("upserting user: %w", err)
 		}
 
+		lastRate, err := s.GetLastRate(ctx, chat.ID)
+		if err != nil {
+			return fmt.Errorf("getting last rate: %w", err)
+		}
+
+		r = filterUserRate(from.ID, lastRate)
+
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("upserting user to chat: %w", err)
+		return nil, fmt.Errorf("upserting user to chat: %w", err)
 	}
 
+	return r, nil
+}
+
+func filterUserRate(userID int, rate *models.Rate) *models.UserRate {
+	if rate == nil {
+		return nil
+	}
+
+	for i, r := range rate.UserRates {
+		if r.UserID == userID {
+			r.Idx = i
+			return r
+		}
+	}
 	return nil
 }
 
 func (s *Store) UpsertUser(ctx context.Context, c *models.Chat, u *models.User) error {
-	_, err := s.c.Collection(chatsColl).Doc(fmt.Sprint(c.ID)).Collection(usersColl).Doc(fmt.Sprint(u.ID)).Set(ctx, u)
+	_, err := s.c.Collection(collChats).Doc(fmt.Sprint(c.ID)).Collection(collUsers).Doc(fmt.Sprint(u.ID)).Set(ctx, u)
 	if err != nil {
 		return fmt.Errorf("upserting user: %w", err)
 	}
@@ -56,9 +79,9 @@ func (s *Store) UpsertUser(ctx context.Context, c *models.Chat, u *models.User) 
 }
 
 func (s *Store) AddPost(ctx context.Context, post *models.Post) error {
-	_, err := s.c.Collection(chatsColl).
+	_, err := s.c.Collection(collChats).
 		Doc(fmt.Sprint(post.ChatID)).
-		Collection(postsColl).
+		Collection(collPosts).
 		Doc(fmt.Sprint(post.MessageID)).
 		Set(ctx, post)
 	if err != nil {
@@ -69,7 +92,7 @@ func (s *Store) AddPost(ctx context.Context, post *models.Post) error {
 }
 
 func (s *Store) UpsertReaction(ctx context.Context, chatID int64, r *models.Reaction) (pos, neg int, err error) {
-	c := s.c.Collection(chatsColl).Doc(fmt.Sprint(chatID)).Collection(postsColl).Doc(fmt.Sprint(r.MessageID))
+	c := s.c.Collection(collChats).Doc(fmt.Sprint(chatID)).Collection(collPosts).Doc(fmt.Sprint(r.MessageID))
 	var positives, negatives []int
 	err = s.c.RunTransaction(ctx, func(ctx context.Context, tx *firestore.Transaction) error {
 		dSnap, err := tx.Get(c)
@@ -146,7 +169,7 @@ func (s *Store) GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error
 	today := time.Date(y, m, d, 0, 0, 0, 0, location)
 	yesterday := today.Add(-24 * time.Hour)
 
-	it := s.c.CollectionGroup(postsColl).
+	it := s.c.CollectionGroup(collPosts).
 		Where("created", ">=", yesterday).
 		Where("created", "<", today).
 		Documents(ctx)
@@ -183,9 +206,9 @@ func (s *Store) GetYesterdayPosts(ctx context.Context) ([]models.PostUser, error
 		pu := models.PostUser{
 			Post: p,
 		}
-		dr, err := s.c.Collection(chatsColl).
+		dr, err := s.c.Collection(collChats).
 			Doc(fmt.Sprint(p.ChatID)).
-			Collection(usersColl).
+			Collection(collUsers).
 			Doc(fmt.Sprint(p.UserID)).
 			Get(ctx)
 		if err != nil {

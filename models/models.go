@@ -81,3 +81,14 @@ type PostUser struct {
 	Post
 	User
 }
+
+type Rate struct {
+	UserRates []*UserRate `firestore:"user-rates,omitempty"`
+	Created   time.Time   `firestore:"created,omitempty"`
+}
+
+type UserRate struct {
+	UserID int     `firestore:"user-id,omitempty"`
+	Rate   float64 `firestore:"rate,omitempty"`
+	Idx    int     `firestore:"idx,omitempty"`
+}

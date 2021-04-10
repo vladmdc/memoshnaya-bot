@@ -36,11 +36,9 @@ func main() {
 
 	s := store.New(c)
 
-	h := handlers.New(
-		log.With().Str("component", "handler").Logger(),
-		s,
-		bot,
-	)
+	_ = s.CalcRates(ctx)
+
+	h := handlers.New(log.With().Str("component", "handler").Logger(), s, bot)
 
 	log.Info().Str("bot", bot.Self.UserName).Msg("authorized on account")
 

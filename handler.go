@@ -89,3 +89,9 @@ func YesterdayMeme(w http.ResponseWriter, r *http.Request) {
 
 	return
 }
+
+func CalcRates(w http.ResponseWriter, r *http.Request) {
+	if err := s.CalcRates(r.Context()); err != nil {
+		l.Error().Err(err).Msg("calc rates")
+	}
+}

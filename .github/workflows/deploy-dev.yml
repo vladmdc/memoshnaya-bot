@@ -36,3 +36,16 @@ jobs:
           export_default_credentials: true
       - run:
           gcloud functions deploy best-post --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=YesterdayMeme --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN_DEV }}
+
+  deploy-rates:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v2
+      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID_DEV }}
+          service_account_key: ${{ secrets.GCP_SA_KEY_DEV }}
+          export_default_credentials: true
+      - run:
+          gcloud functions deploy calc-rates --trigger-http --runtime=go113 --allow-unauthenticated --memory=128 --entry-point=CalcRates --region=europe-west3 --set-env-vars BOT_TOKEN=${{ secrets.BOT_TOKEN_DEV }}

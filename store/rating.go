@@ -14,7 +14,7 @@ import (
 
 const (
 	ratingDays      = 14
-	minPostsForRate = 1
+	minPostsForRate = 3
 )
 
 func (s *Store) CalcRates(ctx context.Context) error {

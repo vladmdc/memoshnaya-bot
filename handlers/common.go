@@ -22,7 +22,7 @@ func newReactionsKeyboard(positive, negative int) tgbotapi.InlineKeyboardMarkup 
 		))
 }
 
-var ratePostfixes = []string{"🥇", "🥈", "🥉", "🏅"}
+var ratePostfixes = []string{"🥇", "🥈", "🥉", "🗿"}
 
 func from(ctx context.Context, user *tgbotapi.User) string {
 	rate := ctx.Value(usrRate{}).(*models.UserRate)
